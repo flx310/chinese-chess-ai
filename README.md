@@ -1,6 +1,6 @@
 # 楚汉棋局 - 中国象棋人机对战
 
-一款功能完整、规则严谨的中国象棋人机对弈应用，集成 Elephantfish.py AI 引擎，支持多难度对战、完整游戏操作、响应式界面与丰富音效。
+一款功能完整、规则严谨的中国象棋人机对弈应用，集成 Elephantfish.py AI 引擎。
 
 ## 功能特性
 
@@ -91,11 +91,11 @@ python -m pip install flask flask-cors
 ## 项目结构
 
 ```
-chess-game/
+chinese-chess-ai/
 ├── index.html          # 前端主页面
 ├── server.py           # Flask 后端服务
 ├── start.bat           # 一键启动脚本
-├── Elephantfish.py     # AI 引擎（上级目录）
+├── Elephantfish.py     # AI 引擎
 └── README.md           # 项目说明
 ```
 
