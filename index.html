@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>楚汉棋局 - 人机对战</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♟️</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --board-bg: #d4a96a;
+            --board-line: #5c4033;
+            --piece-red: #c41e3a;
+            --piece-black: #1a1a1a;
+            --highlight-selected: #ffeb3b;
+            --highlight-valid: rgba(76, 175, 80, 0.6);
+            --highlight-check: #f44336;
+            --text-primary: #e8e8e8;
+            --text-secondary: #9e9e9e;
+            --btn-primary: #e94560;
+            --btn-hover: #ff6b6b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            border-bottom: 2px solid var(--board-line);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-family: 'Ma Shan Zheng', serif;
+            font-size: 2.5rem;
+            color: var(--highlight-selected);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        /* 游戏主区域 */
+        .game-main {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+
+        /* 顶部难度选择 - 更紧凑 */
+        .top-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--bg-tertiary);
+            flex-wrap: nowrap;
+        }
+
+        .top-panel .panel-title {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        .top-panel .difficulty-selector {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 20px;
+            flex-wrap: nowrap;
+        }
+
+        /* 中间棋盘区域 */
+        .board-area {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .board-wrapper {
+            position: relative;
+            background: var(--board-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            line-height: 0;
+        }
+
+        #chessBoard {
+            display: block;
+            cursor: pointer;
+            touch-action: none;
+            border-radius: 8px;
+        }
+
+        /* 底部控制栏 - 更现代 */
+        .bottom-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px 0;
+            border-top: 1px solid var(--bg-tertiary);
+        }
+
+        .bottom-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-left: 20px;
+        }
+
+        .bottom-right {
+            display: flex;
+            gap: 12px;
+            margin-right: 20px;
+        }
+
+        .status-display {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+        }
+            max-width: 100%;
+            flex: 1;
+        }
+
+        .panel-section {
+            margin-bottom: 20px;
+        }
+
+        .panel-title {
+            font-size: 1.2rem;
+            color: var(--highlight-selected);
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--board-line);
+            padding-bottom: 8px;
+        }
+
+        .turn-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+
+        .turn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Ma Shan Zheng', serif;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .turn-icon.red {
+            background: var(--piece-red);
+            color: white;
+        }
+
+        .turn-icon.black {
+            background: var(--piece-black);
+            color: white;
+        }
+
+        .turn-text {
+            font-size: 1.1rem;
+        }
+
+        .difficulty-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .difficulty-option {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+            white-space: nowrap;
+        }
+
+        .difficulty-option:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .difficulty-option.active {
+            border-color: var(--btn-primary);
+            background: rgba(233, 69, 96, 0.2);
+        }
+
+        .difficulty-option input {
+            display: none;
+        }
+
+        .difficulty-name {
+            font-weight: bold;
+            min-width: 50px;
+        }
+
+        .difficulty-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: var(--btn-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--btn-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(233, 69, 96, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-display {
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .status-text {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .status-text.check {
+            color: var(--highlight-check);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .thinking {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255,235,59,0.1);
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .thinking.active {
+            display: flex;
+        }
+
+        .thinking-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--highlight-selected);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            max-width: 90%;
+        }
+
+        .modal h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            font-family: 'Ma Shan Zheng', serif;
+        }
+
+        .modal h2.red {
+            color: var(--piece-red);
+        }
+
+        .modal h2.black {
+            color: var(--piece-black);
+        }
+
+        .modal h2.draw {
+            color: var(--highlight-selected);
+        }
+
+        .modal p {
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .game-main {
+                padding: 15px;
+            }
+
+            .top-panel {
+                gap: 10px;
+            }
+
+            .top-panel .panel-title {
+                text-align: center;
+            }
+
+            .bottom-panel {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .bottom-left {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .bottom-right {
+                justify-content: center;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .top-panel {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .top-panel .difficulty-selector {
+                gap: 4px;
+            }
+
+            .difficulty-option {
+                padding: 6px 10px;
+            }
+
+            .difficulty-name {
+                font-size: 0.8rem;
+            }
+
+            .difficulty-desc {
+                font-size: 0.7rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .game-main {
+                padding: 12px;
+            }
+
+            .top-panel .difficulty-selector {
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: center;
+            }
+
+            .bottom-left {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .btn {
+                padding: 8px 16px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>楚汉棋局</h1>
+        <p class="subtitle">人机对战 - Elephantfish AI (需要Python3后端)</p>
+    </header>
+
+    <div class="container">
+        <div class="game-main">
+            <!-- 顶部难度选择 -->
+            <div class="top-panel">
+                <div class="panel-title">AI难度</div>
+                <div class="difficulty-selector">
+                    <label class="difficulty-option" data-level="easy">
+                        <input type="radio" name="difficulty" value="easy">
+                        <span class="difficulty-name">入门</span>
+                        <span class="difficulty-desc">2层</span>
+                    </label>
+                    <label class="difficulty-option" data-level="normal">
+                        <input type="radio" name="difficulty" value="normal">
+                        <span class="difficulty-name">普通</span>
+                        <span class="difficulty-desc">4层</span>
+                    </label>
+                    <label class="difficulty-option active" data-level="hard">
+                        <input type="radio" name="difficulty" value="hard" checked>
+                        <span class="difficulty-name">困难</span>
+                        <span class="difficulty-desc">6层</span>
+                    </label>
+                    <label class="difficulty-option" data-level="expert">
+                        <input type="radio" name="difficulty" value="expert">
+                        <span class="difficulty-name">大师</span>
+                        <span class="difficulty-desc">8层</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 中间棋盘区域 -->
+            <div class="board-area">
+                <div class="board-wrapper">
+                    <canvas id="chessBoard"></canvas>
+                </div>
+            </div>
+
+            <!-- 底部控制栏 -->
+            <div class="bottom-panel">
+                <div class="bottom-left">
+                    <div class="turn-indicator">
+                        <div class="turn-icon red" id="turnIcon">帥</div>
+                        <span class="turn-text" id="turnText">红方走棋</span>
+                    </div>
+                    <div class="thinking" id="thinkingIndicator">
+                        <div class="thinking-spinner"></div>
+                        <span>AI思考中...</span>
+                    </div>
+                    <div class="status-display" id="statusText">游戏进行中</div>
+                </div>
+                <div class="bottom-right">
+                    <button class="btn btn-secondary" id="soundBtn" title="开关音效">🔊</button>
+                    <button class="btn btn-secondary" id="undoBtn" disabled>悔棋</button>
+                    <button class="btn btn-primary" id="newGameBtn">重新开始</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2 id="modalTitle">游戏结束</h2>
+            <p id="modalMessage">游戏结果</p>
+            <button class="btn btn-primary" id="modalBtn">再来一局</button>
+        </div>
+    </div>
+
+    <script>
+        const BOARD_WIDTH = 9;
+        const BOARD_HEIGHT = 10;
+        const PIECES = { 'P': 44, 'N': 108, 'B': 23, 'R': 233, 'A': 23, 'C': 101, 'K': 2500 };
+        const MATE_LOWER = PIECES['K'] - (2*PIECES['R'] + 2*PIECES['N'] + 2*PIECES['B'] + 2*PIECES['A'] + 2*PIECES['C'] + 5*PIECES['P']);
+        const MATE_UPPER = PIECES['K'] + (2*PIECES['R'] + 2*PIECES['N'] + 2*PIECES['B'] + 2*PIECES['A'] + 2*PIECES['C'] + 5*PIECES['P']);
+        const QS_LIMIT = 219;
+        const EVAL_ROUGHNESS = 13;
+
+        const INITIAL_BOARD = [
+            [{p:'車',c:false},{p:'馬',c:false},{p:'象',c:false},{p:'士',c:false},{p:'將',c:false},{p:'士',c:false},{p:'象',c:false},{p:'馬',c:false},{p:'車',c:false}],
+            [null,null,null,null,null,null,null,null,null],
+            [null,{p:'炮',c:false},null,null,null,null,null,{p:'炮',c:false},null],
+            [{p:'卒',c:false},null,{p:'卒',c:false},null,{p:'卒',c:false},null,{p:'卒',c:false},null,{p:'卒',c:false}],
+            [null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null],
+            [{p:'兵',c:true},null,{p:'兵',c:true},null,{p:'兵',c:true},null,{p:'兵',c:true},null,{p:'兵',c:true}],
+            [null,{p:'炮',c:true},null,null,null,null,null,{p:'炮',c:true},null],
+            [null,null,null,null,null,null,null,null,null],
+            [{p:'車',c:true},{p:'馬',c:true},{p:'相',c:true},{p:'仕',c:true},{p:'帥',c:true},{p:'仕',c:true},{p:'相',c:true},{p:'馬',c:true},{p:'車',c:true}]
+        ];
+
+        const PIECE_VALUES = {
+            '帥': 10000, '將': 10000,
+            '仕': 20, '士': 20,
+            '相': 20, '象': 20,
+            '車': 100, '馬': 40, '炮': 40,
+            '兵': 10, '卒': 10
+        };
+
+        const PST = {};
+        PST["兵"] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 9, 9, 11, 13, 11, 9, 9, 9, 0, 0, 0, 0, 0, 0, 19, 24, 34, 42, 44, 42, 34, 24, 19, 0, 0, 0, 0, 0, 0, 19, 24, 32, 37, 37, 37, 32, 24, 19, 0, 0, 0, 0, 0, 0, 19, 23, 27, 29, 30, 29, 27, 23, 19, 0, 0, 0, 0, 0, 0, 14, 18, 20, 27, 29, 27, 20, 18, 14, 0, 0, 0, 0, 0, 0, 7, 0, 13, 0, 16, 0, 13, 0, 7, 0, 0, 0, 0, 0, 0, 7, 0, 7, 0, 15, 0, 7, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 15, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        PST["卒"] = PST["兵"].slice();
+        PST["相"] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 40, 0, 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 38, 0, 0, 40, 43, 40, 0, 0, 38, 0, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0, 0, 0, 0, 0, 0, 40, 40, 0, 40, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        PST["象"] = PST["相"].slice();
+        PST["仕"] = PST["相"].slice();
+        PST["士"] = PST["相"].slice();
+        PST["馬"] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 90, 90, 90, 96, 90, 96, 90, 90, 90, 0, 0, 0, 0, 0, 0, 90, 96, 103, 97, 94, 97, 103, 96, 90, 0, 0, 0, 0, 0, 0, 92, 98, 99, 103, 99, 103, 99, 98, 92, 0, 0, 0, 0, 0, 0, 93, 108, 100, 107, 100, 107, 100, 108, 93, 0, 0, 0, 0, 0, 0, 90, 100, 99, 103, 104, 103, 99, 100, 90, 0, 0, 0, 0, 0, 0, 90, 98, 101, 102, 103, 102, 101, 98, 90, 0, 0, 0, 0, 0, 0, 92, 94, 98, 95, 98, 95, 98, 94, 92, 0, 0, 0, 0, 0, 0, 93, 92, 94, 95, 92, 95, 94, 92, 93, 0, 0, 0, 0, 0, 0, 85, 90, 92, 93, 78, 93, 92, 90, 85, 0, 0, 0, 0, 0, 0, 88, 85, 90, 88, 90, 88, 90, 85, 88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        PST["車"] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 206, 208, 207, 213, 214, 213, 207, 208, 206, 0, 0, 0, 0, 0, 0, 206, 212, 209, 216, 233, 216, 209, 212, 206, 0, 0, 0, 0, 0, 0, 206, 208, 207, 214, 216, 214, 207, 208, 206, 0, 0, 0, 0, 0, 0, 206, 213, 213, 216, 216, 216, 213, 213, 206, 0, 0, 0, 0, 0, 0, 208, 211, 211, 214, 215, 214, 211, 211, 208, 0, 0, 0, 0, 0, 0, 208, 212, 212, 214, 215, 214, 212, 212, 208, 0, 0, 0, 0, 0, 0, 204, 209, 204, 212, 214, 212, 204, 209, 204, 0, 0, 0, 0, 0, 0, 198, 208, 204, 212, 212, 212, 204, 208, 198, 0, 0, 0, 0, 0, 0, 200, 208, 206, 212, 200, 212, 206, 208, 200, 0, 0, 0, 0, 0, 0, 194, 206, 204, 212, 200, 212, 204, 206, 194, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        PST["炮"] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 100, 96, 91, 90, 91, 96, 100, 100, 0, 0, 0, 0, 0, 0, 98, 98, 96, 92, 89, 92, 96, 98, 98, 0, 0, 0, 0, 0, 0, 97, 97, 96, 91, 92, 91, 96, 97, 97, 0, 0, 0, 0, 0, 0, 96, 99, 99, 98, 100, 98, 99, 99, 96, 0, 0, 0, 0, 0, 0, 96, 96, 96, 96, 100, 96, 96, 96, 96, 0, 0, 0, 0, 0, 0, 95, 96, 99, 96, 100, 96, 99, 96, 95, 0, 0, 0, 0, 0, 0, 96, 96, 96, 96, 96, 96, 96, 96, 96, 0, 0, 0, 0, 0, 0, 97, 96, 100, 99, 101, 99, 100, 96, 97, 0, 0, 0, 0, 0, 0, 96, 97, 98, 98, 98, 98, 98, 97, 96, 0, 0, 0, 0, 0, 0, 96, 96, 97, 99, 99, 99, 97, 96, 96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        PST["帥"] = PST["兵"].map((v, i) => v > 0 ? v + PIECES['K'] : 0);
+        PST["將"] = PST["帥"].slice();
+
+        let canvas, ctx;
+        let CELL_SIZE = 70;
+        let PIECE_RADIUS = 30;
+        let board = [];
+        let selectedPiece = null;
+        let validMoves = [];
+        let currentTurn = 'red';
+        let gameOver = false;
+        let aiThinking = false;
+        let difficulty = 'hard';
+        let moveHistory = [];
+        let lastMove = null;
+        let aiMove = null;
+        let checkHistory = []; // 记录将军历史，用于检测长将
+
+        const DIFFICULTY_DEPTH = { 'easy': 2, 'normal': 3, 'hard': 4, 'expert': 6 };
+        const DIFFICULTY_TIME = { 'easy': 100, 'normal': 200, 'hard': 400, 'expert': 800 };
+
+        function initBoard() {
+            board = INITIAL_BOARD.map(row => row.map(cell => cell ? {...cell} : null));
+        }
+
+        function initCanvas() {
+            const wrapper = document.querySelector('.board-wrapper');
+            const container = document.querySelector('.container');
+            if (!wrapper || !container) return;
+
+            const containerWidth = Math.min(container.clientWidth - 40, 700);
+            const availableHeight = window.innerHeight - 250;
+            const maxCellWidth = Math.floor(containerWidth / (BOARD_WIDTH + 1));
+            const maxCellHeight = Math.floor(availableHeight / (BOARD_HEIGHT + 1));
+            CELL_SIZE = Math.min(maxCellWidth, maxCellHeight, 70);
+            CELL_SIZE = Math.max(CELL_SIZE, 45);
+            PIECE_RADIUS = Math.floor(CELL_SIZE * 0.43);
+
+            // 调整 Canvas 大小，使边距能容纳棋子
+            const MARGIN = Math.ceil(CELL_SIZE * 0.55);  // 边距略大于棋子半径
+            canvas.width = CELL_SIZE * (BOARD_WIDTH - 1) + MARGIN * 2;
+            canvas.height = CELL_SIZE * (BOARD_HEIGHT - 1) + MARGIN * 2;
+
+            draw();
+        }
+
+        function draw() {
+            drawBoard();
+            drawPieces();
+        }
+
+        function drawBoard() {
+            const MARGIN = Math.ceil(CELL_SIZE * 0.55);
+            const p = MARGIN;
+            ctx.fillStyle = '#d4a96a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#5c4033';
+            ctx.lineWidth = 1;
+
+            for (let i = 0; i < BOARD_WIDTH; i++) {
+                const x = p + i * CELL_SIZE;
+                ctx.beginPath();
+                ctx.moveTo(x, p);
+                ctx.lineTo(x, p + (BOARD_HEIGHT - 1) * CELL_SIZE);
+                ctx.stroke();
+            }
+
+            for (let i = 0; i < BOARD_HEIGHT; i++) {
+                const y = p + i * CELL_SIZE;
+                ctx.beginPath();
+                ctx.moveTo(p, y);
+                ctx.lineTo(p + (BOARD_WIDTH - 1) * CELL_SIZE, y);
+                ctx.stroke();
+            }
+
+            drawPalaceDiagonals();
+            drawRiver();
+        }
+
+        function drawPalace(x1, y1, x2, y2) {
+            const MARGIN = Math.ceil(CELL_SIZE * 0.55);
+            const p = MARGIN;
+            const ip = CELL_SIZE * 0.15;
+            ctx.beginPath();
+            ctx.moveTo(p + x1 * CELL_SIZE + ip, p + y1 * CELL_SIZE);
+            ctx.lineTo(p + x1 * CELL_SIZE, p + y1 * CELL_SIZE + ip);
+            ctx.moveTo(p + x1 * CELL_SIZE, p + y1 * CELL_SIZE + ip);
+            ctx.lineTo(p + x1 * CELL_SIZE, p + y2 * CELL_SIZE - ip);
+            ctx.moveTo(p + x1 * CELL_SIZE, p + y2 * CELL_SIZE - ip);
+            ctx.lineTo(p + x1 * CELL_SIZE + ip, p + y2 * CELL_SIZE);
+            ctx.moveTo(p + x1 * CELL_SIZE + ip, p + y2 * CELL_SIZE);
+            ctx.lineTo(p + x2 * CELL_SIZE - ip, p + y2 * CELL_SIZE);
+            ctx.moveTo(p + x2 * CELL_SIZE - ip, p + y2 * CELL_SIZE);
+            ctx.lineTo(p + x2 * CELL_SIZE, p + y2 * CELL_SIZE - ip);
+            ctx.moveTo(p + x2 * CELL_SIZE, p + y2 * CELL_SIZE - ip);
+            ctx.lineTo(p + x2 * CELL_SIZE, p + y1 * CELL_SIZE + ip);
+            ctx.moveTo(p + x2 * CELL_SIZE, p + y1 * CELL_SIZE + ip);
+            ctx.lineTo(p + x2 * CELL_SIZE - ip, p + y1 * CELL_SIZE);
+            ctx.moveTo(p + x2 * CELL_SIZE - ip, p + y1 * CELL_SIZE);
+            ctx.lineTo(p + x1 * CELL_SIZE + ip, p + y1 * CELL_SIZE);
+            ctx.stroke();
+        }
+
+        function drawPalaceDiagonals() {
+            const MARGIN = Math.ceil(CELL_SIZE * 0.55);
+            const p = MARGIN;
+            ctx.strokeStyle = '#5c4033';
+            ctx.lineWidth = 1;
+            
+            // 黑方九宫 (行0-2，列3-5)
+            // 左上到右下
+            ctx.beginPath();
+            ctx.moveTo(p + 3 * CELL_SIZE, p + 0 * CELL_SIZE);
+            ctx.lineTo(p + 5 * CELL_SIZE, p + 2 * CELL_SIZE);
+            ctx.stroke();
+            // 右上到左下
+            ctx.beginPath();
+            ctx.moveTo(p + 5 * CELL_SIZE, p + 0 * CELL_SIZE);
+            ctx.lineTo(p + 3 * CELL_SIZE, p + 2 * CELL_SIZE);
+            ctx.stroke();
+            
+            // 红方九宫 (行7-9，列3-5)
+            // 左上到右下
+            ctx.beginPath();
+            ctx.moveTo(p + 3 * CELL_SIZE, p + 7 * CELL_SIZE);
+            ctx.lineTo(p + 5 * CELL_SIZE, p + 9 * CELL_SIZE);
+            ctx.stroke();
+            // 右上到左下
+            ctx.beginPath();
+            ctx.moveTo(p + 5 * CELL_SIZE, p + 7 * CELL_SIZE);
+            ctx.lineTo(p + 3 * CELL_SIZE, p + 9 * CELL_SIZE);
+            ctx.stroke();
+        }
+
+        function drawRiver() {
+            const MARGIN = Math.ceil(CELL_SIZE * 0.55);
+            const p = MARGIN;
+            const y1 = p + 4 * CELL_SIZE;
+            const y2 = p + 5 * CELL_SIZE;
+            ctx.fillStyle = '#c49a6c';
+            ctx.fillRect(p, y1, (BOARD_WIDTH - 1) * CELL_SIZE, y2 - y1);
+            ctx.font = `${CELL_SIZE * 0.45}px "Ma Shan Zheng", serif`;
+            ctx.fillStyle = '#5c4033';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('楚  河  汉  界', p + 4 * CELL_SIZE, y1 + (y2 - y1) / 2);
+        }
+
+        function drawCoordinates() {
+            const p = CELL_SIZE;
+            ctx.font = `${CELL_SIZE * 0.22}px "Noto Sans SC", sans-serif`;
+            ctx.fillStyle = '#5c4033';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (let i = 0; i < 9; i++) {
+                ctx.fillText(['一','二','三','四','五','六','七','八','九'][i], p + i * CELL_SIZE, p * 0.6);
+            }
+            for (let i = 0; i < 9; i++) {
+                ctx.fillText(['1','2','3','4','5','6','7','8','9'][i], p + i * CELL_SIZE, p + BOARD_HEIGHT * CELL_SIZE + p * 0.35);
+            }
+        }
+
+        function drawPieces() {
+            const MARGIN = Math.ceil(CELL_SIZE * 0.55);
+            const p = MARGIN;
+            for (let row = 0; row < BOARD_HEIGHT; row++) {
+                for (let col = 0; col < BOARD_WIDTH; col++) {
+                    const piece = board[row][col];
+                    if (piece) {
+                        drawPiece(p + col * CELL_SIZE, p + row * CELL_SIZE, piece.p, piece.c);
+                    }
+                }
+            }
+
+            if (selectedPiece) {
+                const { row, col } = selectedPiece;
+                const x = p + col * CELL_SIZE;
+                const y = p + row * CELL_SIZE;
+                ctx.beginPath();
+                ctx.arc(x, y, PIECE_RADIUS + 3, 0, Math.PI * 2);
+                ctx.strokeStyle = '#ffeb3b';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+
+            if (validMoves.length > 0) {
+                validMoves.forEach(move => {
+                    const x = p + move.col * CELL_SIZE;
+                    const y = p + move.row * CELL_SIZE;
+                    ctx.beginPath();
+                    if (board[move.row][move.col]) {
+                        ctx.arc(x, y, PIECE_RADIUS + 2, 0, Math.PI * 2);
+                        ctx.strokeStyle = 'rgba(244, 67, 54, 0.8)';
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+                    } else {
+                        ctx.arc(x, y, PIECE_RADIUS * 0.25, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(76, 175, 80, 0.6)';
+                        ctx.fill();
+                    }
+                });
+            }
+
+            if (lastMove) {
+                const x1 = p + lastMove.fromCol * CELL_SIZE;
+                const y1 = p + lastMove.fromRow * CELL_SIZE;
+                const x2 = p + lastMove.toCol * CELL_SIZE;
+                const y2 = p + lastMove.toRow * CELL_SIZE;
+                ctx.beginPath();
+                ctx.arc(x1, y1, PIECE_RADIUS * 0.12, 0, Math.PI * 2);
+                ctx.arc(x2, y2, PIECE_RADIUS * 0.12, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff9800';
+                ctx.fill();
+            }
+        }
+
+        function drawPiece(x, y, piece, isRed) {
+            ctx.beginPath();
+            ctx.arc(x, y, PIECE_RADIUS, 0, Math.PI * 2);
+            const gradient = ctx.createRadialGradient(x - 3, y - 3, 0, x, y, PIECE_RADIUS);
+            if (isRed) {
+                gradient.addColorStop(0, '#e53935');
+                gradient.addColorStop(1, '#b71c1c');
+            } else {
+                gradient.addColorStop(0, '#424242');
+                gradient.addColorStop(1, '#000000');
+            }
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.strokeStyle = isRed ? '#ffcdd2' : '#e0e0e0';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 统一字体设置
+            ctx.font = `bold ${CELL_SIZE * 0.38}px "Noto Serif SC", "SimSun", serif`;
+            ctx.fillStyle = isRed ? '#ffcdd2' : '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // 添加文字阴影增强可读性
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 2;
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
+            
+            ctx.fillText(piece, x, y + 1);
+            ctx.shadowColor = 'transparent';
+        }
+
+        function isValidPosition(row, col) {
+            return row >= 0 && row < BOARD_HEIGHT && col >= 0 && col < BOARD_WIDTH;
+        }
+
+        function getRawValidMoves(row, col, piece, boardToUse) {
+            const b = boardToUse || board;
+            const p = piece.p;
+            const isRed = piece.c;
+            const moves = [];
+
+            switch (p) {
+                case '帥':
+                case '將':
+                    moves.push(...getGeneralMoves(row, col, isRed, b));
+                    break;
+                case '仕':
+                case '士':
+                    moves.push(...getAdvisorMoves(row, col, isRed, b));
+                    break;
+                case '相':
+                case '象':
+                    moves.push(...getElephantMoves(row, col, isRed, b));
+                    break;
+                case '車':
+                    moves.push(...getChariotMoves(row, col, isRed, b));
+                    break;
+                case '馬':
+                    moves.push(...getHorseMoves(row, col, isRed, b));
+                    break;
+                case '炮':
+                    moves.push(...getCannonMoves(row, col, isRed, b));
+                    break;
+                case '兵':
+                case '卒':
+                    moves.push(...getSoldierMoves(row, col, isRed, b));
+                    break;
+            }
+            return moves;
+        }
+
+        function getValidMoves(row, col) {
+            const piece = board[row][col];
+            if (!piece) return [];
+            let moves = getRawValidMoves(row, col, piece);
+            
+            return moves.filter(move => {
+                const tempBoard = board.map(r => r.map(c => c ? {...c} : null));
+                const p = {...board[row][col]};
+                tempBoard[move.row][move.col] = p;
+                tempBoard[row][col] = null;
+                
+                if (isKingInCheck(piece.c, tempBoard)) return false;
+                
+                if (piece.p === '帥' || piece.p === '將') {
+                    const isRed = piece.c;
+                    const opponentKing = isRed ? '將' : '帥';
+                    if (move.col === col) {
+                        let foundOpponent = false;
+                        const scanDir = isRed ? 1 : -1;
+                        for (let r = move.row + scanDir; r >= 0 && r < BOARD_HEIGHT; r += scanDir) {
+                            const q = tempBoard[r][move.col];
+                            if (q && q.p === opponentKing) { foundOpponent = true; break; }
+                            if (q) break;
+                        }
+                        if (foundOpponent) return false;
+                    }
+                }
+                
+                // 检测长将：如果这步棋会导致将军，且该走法已使用超过2次，则禁止
+                const opponentIsRed = !piece.c;
+                if (isKingInCheck(opponentIsRed, tempBoard)) {
+                    const checkKey = `${row},${col},${move.row},${move.col}`;
+                    const sameCheckCount = checkHistory.filter(k => k === checkKey).length;
+                    if (sameCheckCount >= 3) return false; // 长将限制：同一走法将军不能超过3次
+                }
+                
+                return true;
+            });
+        }
+
+        function getGeneralMoves(row, col, isRed, b) {
+            const moves = [];
+            const palace = isRed ?
+                [{r:7,c:3},{r:7,c:4},{r:7,c:5},{r:8,c:3},{r:8,c:4},{r:8,c:5},{r:9,c:3},{r:9,c:4},{r:9,c:5}] :
+                [{r:0,c:3},{r:0,c:4},{r:0,c:5},{r:1,c:3},{r:1,c:4},{r:1,c:5},{r:2,c:3},{r:2,c:4},{r:2,c:5}];
+            const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+            
+            const opponentKing = isRed ? '將' : '帥';
+            let opponentKingCol = -1;
+            for (let c = 0; c < BOARD_WIDTH; c++) {
+                for (let r = 0; r < BOARD_HEIGHT; r++) {
+                    const p = b[r][c];
+                    if (p && p.p === opponentKing && p.c !== isRed) {
+                        opponentKingCol = c;
+                        break;
+                    }
+                }
+                if (opponentKingCol !== -1) break;
+            }
+            
+            for (const [dr,dc] of dirs) {
+                const nr = row + dr, nc = col + dc;
+                if (!palace.some(p => p.r === nr && p.c === nc)) continue;
+                
+                const target = b[nr][nc];
+                if (target && target.c === isRed) continue;
+                
+                // 检查移动后是否和对方的将/帅照面
+                if (opponentKingCol !== -1 && nc === opponentKingCol) {
+                    // 移动后在同一列，检查中间是否有棋子（考虑移动后的棋盘状态）
+                    let blocked = false;
+                    const opponentRow = isRed ? 0 : 9; // 对方将在的行
+                    const minR = Math.min(nr, opponentRow);
+                    const maxR = Math.max(nr, opponentRow);
+                    for (let r = minR + 1; r < maxR; r++) {
+                        if (r === row) continue; // 跳过原位置（已移动）
+                        if (r === nr) continue; // 跳过目标位置
+                        if (b[r][nc] !== null) { blocked = true; break; }
+                    }
+                    if (!blocked) continue; // 照面，不允许移动
+                }
+                
+                moves.push({row: nr, col: nc});
+            }
+            return moves;
+        }
+
+        function getAdvisorMoves(row, col, isRed, b) {
+            const moves = [];
+            const palace = isRed ?
+                [{r:7,c:3},{r:7,c:4},{r:7,c:5},{r:8,c:3},{r:8,c:4},{r:8,c:5},{r:9,c:3},{r:9,c:4},{r:9,c:5}] :
+                [{r:0,c:3},{r:0,c:4},{r:0,c:5},{r:1,c:3},{r:1,c:4},{r:1,c:5},{r:2,c:3},{r:2,c:4},{r:2,c:5}];
+            const dirs = [[1,1],[1,-1],[-1,1],[-1,-1]];
+            for (const [dr,dc] of dirs) {
+                const nr = row + dr, nc = col + dc;
+                if (palace.some(p => p.r === nr && p.c === nc)) {
+                    const target = b[nr][nc];
+                    if (!target || target.c !== isRed) moves.push({row: nr, col: nc});
+                }
+            }
+            return moves;
+        }
+
+        function getElephantMoves(row, col, isRed, b) {
+            const moves = [];
+            if ((isRed && row <= 4) || (!isRed && row >= 5)) return moves;
+            const dirs = [[2,2],[2,-2],[-2,2],[-2,-2]];
+            const blocks = [[1,1],[1,-1],[-1,1],[-1,-1]];
+            for (let i = 0; i < dirs.length; i++) {
+                const [dr,dc] = dirs[i];
+                const [br,bc] = blocks[i];
+                const nr = row + dr, nc = col + dc;
+                const blockR = row + br, blockC = col + bc;
+                if (nr >= 0 && nr < BOARD_HEIGHT && nc >= 0 && nc < BOARD_WIDTH) {
+                    if ((isRed && nr <= 4) || (!isRed && nr >= 5)) continue;
+                    if (!b[blockR][blockC]) {
+                        const target = b[nr][nc];
+                        if (!target || target.c !== isRed) moves.push({row: nr, col: nc});
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function getChariotMoves(row, col, isRed, b) {
+            const moves = [];
+            const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+            for (const [dr,dc] of dirs) {
+                let nr = row + dr, nc = col + dc;
+                while (isValidPosition(nr, nc)) {
+                    const target = b[nr][nc];
+                    if (!target) {
+                        moves.push({row: nr, col: nc});
+                    } else {
+                        if (target.c !== isRed) moves.push({row: nr, col: nc});
+                        break;
+                    }
+                    nr += dr; nc += dc;
+                }
+            }
+            return moves;
+        }
+
+        function getHorseMoves(row, col, isRed, b) {
+            const moves = [];
+            const jumps = [[-2,-1,-1,0],[-2,1,-1,0],[2,-1,1,0],[2,1,1,0],[-1,-2,0,-1],[-1,2,0,1],[1,-2,0,-1],[1,2,0,1]];
+            for (const [dr,dc,br,bc] of jumps) {
+                const nr = row + dr, nc = col + dc;
+                const blockR = row + br, blockC = col + bc;
+                if (isValidPosition(nr, nc) && !b[blockR][blockC]) {
+                    const target = b[nr][nc];
+                    if (!target || target.c !== isRed) moves.push({row: nr, col: nc});
+                }
+            }
+            return moves;
+        }
+
+        function getCannonMoves(row, col, isRed, b) {
+            const moves = [];
+            const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+            for (const [dr,dc] of dirs) {
+                let nr = row + dr, nc = col + dc;
+                let foundScreen = false;
+                while (isValidPosition(nr, nc)) {
+                    const target = b[nr][nc];
+                    if (!foundScreen) {
+                        if (!target) moves.push({row: nr, col: nc});
+                        else foundScreen = true;
+                    } else {
+                        if (target) {
+                            if (target.c !== isRed) moves.push({row: nr, col: nc});
+                            break;
+                        }
+                    }
+                    nr += dr; nc += dc;
+                }
+            }
+            return moves;
+        }
+
+        function getSoldierMoves(row, col, isRed, b) {
+            const moves = [];
+            const forward = isRed ? -1 : 1;
+            const crossed = isRed ? row <= 4 : row >= 5;
+            const nr = row + forward;
+            if (isValidPosition(nr, col)) {
+                const target = b[nr][col];
+                if (!target || target.c !== isRed) moves.push({row: nr, col});
+            }
+            if (crossed) {
+                const side = [[0,-1],[0,1]];
+                for (const [dr,dc] of side) {
+                    const sr = row + dr, sc = col + dc;
+                    if (isValidPosition(sr, sc)) {
+                        const target = b[sr][sc];
+                        if (!target || target.c !== isRed) moves.push({row: sr, col: sc});
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function isKingInCheck(isRed, boardToUse) {
+            let kingRow = -1, kingCol = -1;
+            const kingPiece = isRed ? '帥' : '將';
+            const b = boardToUse || board;
+            for (let r = 0; r < BOARD_HEIGHT; r++) {
+                for (let c = 0; c < BOARD_WIDTH; c++) {
+                    const p = b[r][c];
+                    if (p && p.p === kingPiece && p.c === isRed) { kingRow = r; kingCol = c; break; }
+                }
+                if (kingRow !== -1) break;
+            }
+            if (kingRow === -1) return false;
+            for (let r = 0; r < BOARD_HEIGHT; r++) {
+                for (let c = 0; c < BOARD_WIDTH; c++) {
+                    const p = b[r][c];
+                    if (p && p.c !== isRed) {
+                        const enemyMoves = getRawValidMoves(r, c, p, b);
+                        if (enemyMoves.some(m => m.row === kingRow && m.col === kingCol)) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function hasValidMoves(isRed) {
+            for (let r = 0; r < BOARD_HEIGHT; r++) {
+                for (let c = 0; c < BOARD_WIDTH; c++) {
+                    const p = board[r][c];
+                    if (p && p.c === isRed) {
+                        if (getValidMoves(r, c).length > 0) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function evaluateBoard(boardToEval) {
+            let score = 0;
+            const b = boardToEval || board;
+            for (let r = 0; r < BOARD_HEIGHT; r++) {
+                for (let c = 0; c < BOARD_WIDTH; c++) {
+                    const p = b[r][c];
+                    if (!p) continue;
+                    let value = PIECE_VALUES[p.p] || 10;
+                    let bonus = PST[p.p] ? (PST[p.p][r * 16 + c] || 0) : 0;
+                    if (p.c) {
+                        score += value + bonus;
+                    } else {
+                        score -= value + bonus;
+                    }
+                }
+            }
+            if (isKingInCheck(true, b)) score -= 100;
+            if (isKingInCheck(false, b)) score += 100;
+            return score;
+        }
+
+        function getAllMoves(isRed) {
+            const moves = [];
+            for (let r = 0; r < BOARD_HEIGHT; r++) {
+                for (let c = 0; c < BOARD_WIDTH; c++) {
+                    const p = board[r][c];
+                    if (p && p.c === isRed) {
+                        const pieceMoves = getValidMoves(r, c);
+                        for (const m of pieceMoves) {
+                            moves.push({fromRow: r, fromCol: c, toRow: m.row, toCol: m.col});
+                        }
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function makeMove(fromRow, fromCol, toRow, toCol) {
+            const piece = board[fromRow][fromCol];
+            const captured = board[toRow][toCol];
+            lastMove = {fromRow, fromCol, toRow, toCol};
+            board[toRow][toCol] = piece;
+            board[fromRow][fromCol] = null;
+            
+            if (kingsFacing()) {
+                board[fromRow][fromCol] = piece;
+                board[toRow][toCol] = captured;
+                return;
+            }
+            
+            // 播放音效
+            if (captured) {
+                AudioSys.playCapture();
+            } else {
+                AudioSys.playPlace();
+            }
+            
+            moveHistory.push({piece, fromRow, fromCol, toRow, toCol, captured, turn: currentTurn});
+            
+            // 记录将军历史
+            const opponentIsRed = currentTurn === 'red';
+            if (isKingInCheck(opponentIsRed, board)) {
+                const checkKey = `${fromRow},${fromCol},${toRow},${toCol}`;
+                checkHistory.push(checkKey);
+                // 播放将军音效
+                setTimeout(() => AudioSys.playCheck(), 300);
+            }
+            
+            currentTurn = currentTurn === 'red' ? 'black' : 'red';
+            updateUI();
+            draw();
+            checkGameOver();
+        }
+        
+        function kingsFacing() {
+            let redRow = -1, redCol = -1, blackRow = -1, blackCol = -1;
+            for (let r = 0; r < BOARD_HEIGHT; r++) {
+                for (let c = 0; c < BOARD_WIDTH; c++) {
+                    const p = board[r][c];
+                    if (p && p.p === '帥' && p.c) { redRow = r; redCol = c; }
+                    if (p && p.p === '將' && !p.c) { blackRow = r; blackCol = c; }
+                }
+            }
+            if (redRow === -1 || blackRow === -1) return false;
+            if (redCol !== blackCol) return false;
+            const minR = Math.min(redRow, blackRow);
+            const maxR = Math.max(redRow, blackRow);
+            for (let r = minR + 1; r < maxR; r++) {
+                if (board[r][redCol]) return false;
+            }
+            return true;
+        }
+
+        function undo() {
+            if (moveHistory.length < 2) return;
+            const lastTwo = moveHistory.splice(moveHistory.length - 2, 2);
+            for (let i = lastTwo.length - 1; i >= 0; i--) {
+                const m = lastTwo[i];
+                board[m.fromRow][m.fromCol] = m.piece;
+                board[m.toRow][m.toCol] = m.captured;
+                currentTurn = m.turn;
+            }
+            lastMove = null;
+            aiMove = null;
+            selectedPiece = null;
+            validMoves = [];
+            gameOver = false;
+            checkHistory = []; // 重置将军历史
+            document.getElementById('statusText').textContent = '游戏进行中';
+            document.getElementById('statusText').className = 'status-text';
+            updateUI();
+            draw();
+            updateUndoButton();
+        }
+
+        function newGame() {
+            initBoard();
+            selectedPiece = null;
+            validMoves = [];
+            currentTurn = 'red';
+            gameOver = false;
+            aiThinking = false;
+            moveHistory = [];
+            checkHistory = []; // 重置将军历史
+            lastMove = null;
+            aiMove = null;
+            document.getElementById('statusText').textContent = '游戏进行中';
+            document.getElementById('statusText').className = 'status-text';
+            document.getElementById('modalOverlay').classList.remove('active');
+            updateUI();
+            draw();
+            updateUndoButton();
+            fetch('http://localhost:5000/api/reset', { method: 'POST' }).catch(() => {});
+        }
+
+        function checkGameOver() {
+            const inCheck = isKingInCheck(currentTurn === 'red');
+            const canMove = hasValidMoves(currentTurn === 'red');
+            const statusText = document.getElementById('statusText');
+            if (!canMove) {
+                gameOver = true;
+                if (inCheck) {
+                    const winner = currentTurn === 'red' ? 'black' : 'red';
+                    // 播放胜负音效
+                    if (winner === 'red') {
+                        AudioSys.playWin();
+                    } else {
+                        AudioSys.playLose();
+                    }
+                    showModal(winner);
+                } else {
+                    showModal('draw');
+                }
+                return;
+            }
+            if (inCheck) {
+                const side = currentTurn === 'red' ? '红方' : '黑方';
+                statusText.textContent = `${side}被将军!`;
+                statusText.className = 'status-text check';
+            } else {
+                statusText.textContent = '游戏进行中';
+                statusText.className = 'status-text';
+            }
+        }
+
+        function showModal(winner) {
+            const overlay = document.getElementById('modalOverlay');
+            const title = document.getElementById('modalTitle');
+            const msg = document.getElementById('modalMessage');
+            if (winner === 'red') {
+                title.textContent = '红方获胜!';
+                title.className = 'modal h2 red';
+                msg.textContent = '恭喜你击败了AI!';
+            } else if (winner === 'black') {
+                title.textContent = '黑方获胜!';
+                title.className = 'modal h2 black';
+                msg.textContent = 'AI取得了胜利，再接再厉!';
+            } else {
+                title.textContent = '和棋!';
+                title.className = 'modal h2 draw';
+                msg.textContent = '势均力敌，握手言和。';
+            }
+            overlay.classList.add('active');
+        }
+
+        function updateUI() {
+            const turnIcon = document.getElementById('turnIcon');
+            const turnText = document.getElementById('turnText');
+            if (currentTurn === 'red') {
+                turnIcon.textContent = '帥';
+                turnIcon.className = 'turn-icon red';
+                turnText.textContent = '红方走棋';
+            } else {
+                turnIcon.textContent = '將';
+                turnIcon.className = 'turn-icon black';
+                turnText.textContent = '黑方(AI)走棋';
+            }
+        }
+
+        function updateUndoButton() {
+            document.getElementById('undoBtn').disabled = moveHistory.length < 2 || aiThinking;
+        }
+
+        function setDifficulty(level) {
+            difficulty = level;
+            document.querySelectorAll('.difficulty-option').forEach(opt => {
+                opt.classList.remove('active');
+                if (opt.dataset.level === level) opt.classList.add('active');
+            });
+        }
+
+        function handleClick(event) {
+            if (gameOver || aiThinking || currentTurn === 'black') return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (event.clientX - rect.left) * scaleX;
+            const y = (event.clientY - rect.top) * scaleY;
+            const MARGIN = Math.ceil(CELL_SIZE * 0.55);
+            const p = MARGIN;
+            const col = Math.round((x - p) / CELL_SIZE);
+            const row = Math.round((y - p) / CELL_SIZE);
+            if (!isValidPosition(row, col)) return;
+            if (selectedPiece) {
+                const validMove = validMoves.find(m => m.row === row && m.col === col);
+                if (validMove) {
+                    makeMove(selectedPiece.row, selectedPiece.col, row, col);
+                    selectedPiece = null;
+                    validMoves = [];
+                    updateUndoButton();
+                    if (!gameOver) {
+                        setTimeout(makeAIMove, 300);
+                    }
+                    return;
+                }
+            }
+            const clickedPiece = board[row][col];
+            if (clickedPiece && clickedPiece.c === true) {
+                selectedPiece = {row, col};
+                validMoves = getValidMoves(row, col);
+            } else {
+                selectedPiece = null;
+                validMoves = [];
+            }
+            draw();
+        }
+
+        function makeAIMove() {
+            aiThinking = true;
+            document.getElementById('thinkingIndicator').classList.add('active');
+            document.getElementById('newGameBtn').disabled = true;
+            document.getElementById('undoBtn').disabled = true;
+            
+            // 播放AI思考音效
+            AudioSys.playThinking();
+
+            const depth = DIFFICULTY_DEPTH[difficulty];
+
+            fetch('http://localhost:5000/api/move', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ board: board, depth: depth })
+            })
+            .then(res => {
+                console.log('AI response status:', res.status);
+                return res.json();
+            })
+            .then(data => {
+                console.log('AI response data:', data);
+                aiThinking = false;
+                document.getElementById('thinkingIndicator').classList.remove('active');
+                document.getElementById('newGameBtn').disabled = false;
+
+                if (data.move) {
+                    const move = data.move;
+                    console.log('AI move:', move);
+                    makeMove(move.fromRow, move.fromCol, move.toRow, move.toCol);
+                } else if (data.error) {
+                    console.error('AI error:', data.error);
+                    useFallbackAI();
+                }
+                updateUndoButton();
+            })
+            .catch(err => {
+                console.error('AI request failed:', err);
+                useFallbackAI();
+            });
+        }
+
+        function useFallbackAI() {
+            const depth = DIFFICULTY_DEPTH[difficulty];
+            const move = findBestMoveLocal(depth);
+            aiThinking = false;
+            document.getElementById('thinkingIndicator').classList.remove('active');
+            document.getElementById('newGameBtn').disabled = false;
+            if (move) {
+                makeMove(move.fromRow, move.fromCol, move.toRow, move.toCol);
+            }
+            updateUndoButton();
+        }
+
+        function findBestMoveLocal(depth) {
+            const moves = getAllMoves(false);
+            if (moves.length === 0) return null;
+
+            let bestScore = -Infinity;
+            let bestMove = null;
+
+            for (const move of moves) {
+                const captured = board[move.toRow][move.toCol];
+                const piece = board[move.fromRow][move.fromCol];
+                board[move.toRow][move.toCol] = piece;
+                board[move.fromRow][move.fromCol] = null;
+
+                if (kingsFacing()) {
+                    board[move.fromRow][move.fromCol] = piece;
+                    board[move.toRow][move.toCol] = captured;
+                    continue;
+                }
+
+                const score = -alphabetaLocal(depth - 1, -Infinity, Infinity, true);
+
+                board[move.fromRow][move.fromCol] = piece;
+                board[move.toRow][move.toCol] = captured;
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+            }
+            
+            if (!bestMove && moves.length > 0) {
+                bestMove = moves[0];
+            }
+            return bestMove;
+        }
+
+        function alphabetaLocal(depth, alpha, beta, isMaximizing) {
+            if (depth === 0) {
+                return evaluateBoard();
+            }
+
+            const moves = getAllMoves(isMaximizing);
+            if (moves.length === 0) {
+                if (isKingInCheck(isMaximizing)) {
+                    return isMaximizing ? -10000 : 10000;
+                }
+                return 0;
+            }
+
+            let bestScore = isMaximizing ? -Infinity : Infinity;
+
+            for (const move of moves) {
+                const captured = board[move.toRow][move.toCol];
+                const piece = board[move.fromRow][move.fromCol];
+                board[move.toRow][move.toCol] = piece;
+                board[move.fromRow][move.fromCol] = null;
+
+                if (kingsFacing()) {
+                    board[move.fromRow][move.fromCol] = piece;
+                    board[move.toRow][move.toCol] = captured;
+                    continue;
+                }
+
+                const score = alphabetaLocal(depth - 1, alpha, beta, !isMaximizing);
+
+                board[move.fromRow][move.fromCol] = piece;
+                board[move.toRow][move.toCol] = captured;
+
+                if (isMaximizing) {
+                    bestScore = Math.max(bestScore, score);
+                    alpha = Math.max(alpha, score);
+                    if (score >= beta) break;
+                } else {
+                    bestScore = Math.min(bestScore, score);
+                    beta = Math.min(beta, score);
+                    if (score <= alpha) break;
+                }
+            }
+            return bestScore;
+        }
+
+        // 音效系统
+        const AudioSys = {
+            ctx: null,
+            bgmOsc: null,
+            bgmGain: null,
+            enabled: true,
+            
+            init() {
+                try {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch(e) {
+                    console.log('Audio not supported');
+                    this.enabled = false;
+                }
+            },
+            
+            // 播放音符
+            playTone(freq, duration, type = 'sine', volume = 0.3) {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.frequency.value = freq;
+                osc.type = type;
+                gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            },
+            
+            // 拿棋音效 - 清脆的短音
+            playPickup() {
+                this.playTone(800, 0.1, 'sine', 0.2);
+                setTimeout(() => this.playTone(1200, 0.05, 'sine', 0.15), 50);
+            },
+            
+            // 下棋音效 - 木质撞击声
+            playPlace() {
+                this.playTone(400, 0.15, 'triangle', 0.25);
+                setTimeout(() => this.playTone(200, 0.1, 'triangle', 0.2), 80);
+            },
+            
+            // 吃子音效 - 更有力的声音（进一步降低音量）
+            playCapture() {
+                this.playTone(300, 0.2, 'sawtooth', 0.08);
+                setTimeout(() => this.playTone(150, 0.15, 'square', 0.06), 100);
+                setTimeout(() => this.playTone(600, 0.1, 'sine', 0.05), 200);
+            },
+            
+            // 将军音效 - 警告音
+            playCheck() {
+                this.playTone(880, 0.3, 'sawtooth', 0.25);
+                setTimeout(() => this.playTone(880, 0.3, 'sawtooth', 0.25), 350);
+            },
+            
+            // 胜利音效 - 欢快的旋律
+            playWin() {
+                const melody = [523, 659, 784, 1047, 784, 1047]; // C E G C G C
+                melody.forEach((freq, i) => {
+                    setTimeout(() => this.playTone(freq, 0.3, 'sine', 0.3), i * 200);
+                });
+            },
+            
+            // 失败音效 - 低沉的声音
+            playLose() {
+                const melody = [349, 330, 311, 294]; // F E Eb D
+                melody.forEach((freq, i) => {
+                    setTimeout(() => this.playTone(freq, 0.4, 'triangle', 0.3), i * 250);
+                });
+            },
+            
+            // AI思考音效 - 轻微的嗡嗡声
+            playThinking() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.frequency.value = 150;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.5);
+            },
+            
+            // 背景音乐 - 喜庆欢乐风格（类似斗地主，20秒循环）
+            startBGM() {
+                if (!this.enabled || !this.ctx || this.bgmInterval) return;
+                
+                // 初始化timeout记录数组
+                this.bgmTimeouts = [];
+                
+                // 播放和弦的辅助函数
+                const playChord = (freqs, time, duration, volume = 0.05) => {
+                    const id = setTimeout(() => {
+                        if (!this.enabled) return;
+                        freqs.forEach(f => {
+                            const osc = this.ctx.createOscillator();
+                            const gain = this.ctx.createGain();
+                            osc.connect(gain);
+                            gain.connect(this.ctx.destination);
+                            osc.frequency.value = f;
+                            osc.type = 'triangle';
+                            gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                            osc.start();
+                            osc.stop(this.ctx.currentTime + duration);
+                        });
+                    }, time * 1000);
+                    this.bgmTimeouts.push(id);
+                };
+                
+                // 播放单音的辅助函数
+                const playNote = (freq, time, duration, volume = 0.06, type = 'sine') => {
+                    const id = setTimeout(() => {
+                        if (!this.enabled) return;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.frequency.value = freq;
+                        osc.type = type;
+                        gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                        osc.start();
+                        osc.stop(this.ctx.currentTime + duration);
+                    }, time * 1000);
+                    this.bgmTimeouts.push(id);
+                };
+                
+                // 播放装饰音（快速三连音）
+                const playTriplet = (freqs, startTime, volume = 0.05) => {
+                    freqs.forEach((f, i) => {
+                        playNote(f, startTime + i * 0.12, 0.1, volume);
+                    });
+                };
+                
+                // 16秒的喜庆旋律（超欢乐，类似春节序曲风格）
+                const playMelody = () => {
+                    if (!this.enabled) return;
+                    
+                    // 辅助函数：快速琶音（类似锣鼓点）
+                    const playArpeggio = (freqs, startTime, speed = 0.08) => {
+                        freqs.forEach((f, i) => {
+                            const id = setTimeout(() => {
+                                if (!this.enabled) return;
+                                const osc = this.ctx.createOscillator();
+                                const gain = this.ctx.createGain();
+                                osc.connect(gain);
+                                gain.connect(this.ctx.destination);
+                                osc.frequency.value = f;
+                                osc.type = 'square';
+                                gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+                                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                                osc.start();
+                                osc.stop(this.ctx.currentTime + 0.08);
+                            }, (startTime + i * speed) * 1000);
+                            this.bgmTimeouts.push(id);
+                        });
+                    };
+                    
+                    // 第1-4秒 - 锣鼓开场（咚咚锵咚锵）
+                    playArpeggio([523, 659, 784], 0, 0.06);
+                    playArpeggio([523, 659, 784], 0.4, 0.06);
+                    playChord([262, 330, 392], 0.2, 0.3, 0.06);
+                    playChord([262, 330, 392], 0.6, 0.3, 0.06);
+                    
+                    playArpeggio([587, 740, 880], 1.0, 0.06);
+                    playChord([294, 370, 440], 1.2, 0.3, 0.06);
+                    
+                    playArpeggio([659, 830, 988], 1.8, 0.06);
+                    playArpeggio([659, 830, 988], 2.2, 0.06);
+                    playChord([330, 415, 494], 2.0, 0.3, 0.06);
+                    playChord([330, 415, 494], 2.4, 0.3, 0.06);
+                    
+                    playArpeggio([784, 988, 1175], 3.0, 0.06);
+                    playChord([392, 494, 587], 3.2, 0.4, 0.07);
+                    playNote(1047, 3.5, 0.3, 0.08);
+                    
+                    // 第4-8秒 - 欢快主旋律（跳跃感）
+                    playChord([262, 330, 392], 4.0, 0.25, 0.06);
+                    playNote(523, 4.1, 0.1, 0.07);
+                    playNote(659, 4.3, 0.1, 0.07);
+                    playNote(523, 4.5, 0.1, 0.07);
+                    playNote(784, 4.7, 0.2, 0.08);
+                    
+                    playChord([294, 370, 440], 5.0, 0.25, 0.06);
+                    playNote(587, 5.1, 0.1, 0.07);
+                    playNote(740, 5.3, 0.1, 0.07);
+                    playNote(587, 5.5, 0.1, 0.07);
+                    playNote(880, 5.7, 0.2, 0.08);
+                    
+                    playChord([330, 415, 494], 6.0, 0.25, 0.06);
+                    playNote(659, 6.1, 0.08, 0.07);
+                    playNote(830, 6.25, 0.08, 0.07);
+                    playNote(988, 6.4, 0.08, 0.07);
+                    playNote(830, 6.55, 0.08, 0.07);
+                    playNote(659, 6.7, 0.15, 0.07);
+                    
+                    playChord([392, 494, 587], 7.0, 0.25, 0.06);
+                    playNote(784, 7.1, 0.08, 0.07);
+                    playNote(988, 7.25, 0.08, 0.07);
+                    playNote(1175, 7.4, 0.08, 0.07);
+                    playNote(988, 7.55, 0.08, 0.07);
+                    playNote(784, 7.7, 0.15, 0.07);
+                    
+                    // 第8-12秒 - 喜庆高潮（层层递进）
+                    playArpeggio([523, 659, 784, 1047], 8.0, 0.05);
+                    playChord([262, 330, 392, 523], 8.2, 0.35, 0.07);
+                    playNote(1319, 8.5, 0.25, 0.09);
+                    
+                    playArpeggio([587, 740, 880, 1175], 9.0, 0.05);
+                    playChord([294, 370, 440, 587], 9.2, 0.35, 0.07);
+                    playNote(1480, 9.5, 0.25, 0.09);
+                    
+                    playArpeggio([659, 830, 988, 1319], 10.0, 0.05);
+                    playChord([330, 415, 494, 659], 10.2, 0.35, 0.07);
+                    playNote(1661, 10.5, 0.3, 0.1);
+                    
+                    playArpeggio([784, 988, 1175, 1568], 11.0, 0.05);
+                    playChord([392, 494, 587, 784], 11.2, 0.4, 0.08);
+                    playNote(2093, 11.6, 0.3, 0.1);
+                    
+                    // 第12-16秒 - 华丽结尾（花好月圆感）
+                    playChord([262, 330, 392], 12.0, 0.2, 0.06);
+                    playChord([294, 370, 440], 12.3, 0.2, 0.06);
+                    playChord([330, 415, 494], 12.6, 0.2, 0.06);
+                    playChord([392, 494, 587], 12.9, 0.25, 0.07);
+                    
+                    playNote(523, 13.2, 0.1, 0.07);
+                    playNote(659, 13.4, 0.1, 0.07);
+                    playNote(784, 13.6, 0.1, 0.07);
+                    playNote(1047, 13.8, 0.15, 0.08);
+                    playNote(1319, 14.0, 0.2, 0.09);
+                    
+                    playChord([262, 330, 392, 523, 659, 784], 14.4, 0.5, 0.07);
+                    playChord([294, 370, 440, 587, 740, 880], 14.9, 0.5, 0.07);
+                    
+                    // 最终大和弦（圆满感）
+                    playChord([262, 330, 392, 523, 659, 784, 1047], 15.4, 0.6, 0.08);
+                    playNote(2093, 15.7, 0.3, 0.1);
+                };
+                
+                // 立即播放一次，然后每16秒循环
+                playMelody();
+                this.bgmInterval = setInterval(() => {
+                    if (this.enabled) playMelody();
+                }, 16000);
+            },
+            
+            stopBGM() {
+                if (this.bgmInterval) {
+                    clearInterval(this.bgmInterval);
+                    this.bgmInterval = null;
+                }
+                // 清除所有待播放的setTimeout
+                if (this.bgmTimeouts) {
+                    this.bgmTimeouts.forEach(id => clearTimeout(id));
+                    this.bgmTimeouts = [];
+                }
+            },
+            
+            toggle() {
+                this.enabled = !this.enabled;
+                // 只是切换静音状态，不影响BGM播放进度
+                // BGM继续在后台播放，只是没有声音输出
+                return this.enabled;
+            }
+        };
+
+        let audioStarted = false;
+        
+        function startAudio() {
+            if (audioStarted) return;
+            audioStarted = true;
+            AudioSys.init();
+            AudioSys.startBGM();
+        }
+
+        function init() {
+            canvas = document.getElementById('chessBoard');
+            ctx = canvas.getContext('2d');
+            initBoard();
+            initCanvas();
+            updateUI();
+
+            // 用户首次点击页面时启动音频
+            const startAudioOnInteraction = () => {
+                startAudio();
+                document.removeEventListener('click', startAudioOnInteraction);
+            };
+            document.addEventListener('click', startAudioOnInteraction);
+
+            canvas.addEventListener('click', handleClick);
+            document.getElementById('newGameBtn').addEventListener('click', () => {
+                startAudio();
+                AudioSys.playPlace();
+                newGame();
+            });
+            document.getElementById('undoBtn').addEventListener('click', () => {
+                startAudio();
+                AudioSys.playPickup();
+                undo();
+            });
+            document.getElementById('soundBtn').addEventListener('click', function() {
+                startAudio();
+                const enabled = AudioSys.toggle();
+                this.textContent = enabled ? '🔊' : '🔇';
+            });
+            document.getElementById('modalBtn').addEventListener('click', () => {
+                startAudio();
+                newGame();
+            });
+
+            document.querySelectorAll('.difficulty-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    startAudio();
+                    AudioSys.playPlace();
+                    setDifficulty(opt.dataset.level);
+                });
+            });
+
+            window.addEventListener('resize', () => {
+                initCanvas();
+                draw();
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
